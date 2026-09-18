@@ -1,0 +1,722 @@
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>لعبة اصتياد الحروف والأرقام</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --primary: #FF5252;
+  --secondary: #00BFAE;
+  --accent: #FFD740;
+  --dark: #37474F;
+  --light: #FFF9F0;
+  --green: #69F0AE;
+  --purple: #B388FF;
+}
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: linear-gradient(135deg, #FFD740 0%, #FF5252 50%, #00BFAE 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: var(--dark);
+  direction: rtl;
+}
+.screen { display: none; min-height: 100vh; width: 100%; padding: 15px; position: relative; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+#startScreen { justify-content: center; text-align: center; background: radial-gradient(circle at center, #fff 0%, #FFD740 100%); }
+.title-card { background: white; border-radius: 40px; padding: 30px 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 600px; width: 100%; animation: bounceIn 1s ease; border: 8px solid var(--primary); }
+.title-card h1 { font-size: clamp(1.8rem, 6vw, 3rem); color: var(--primary); margin-bottom: 15px; font-weight: 900; text-shadow: 3px 3px 0 #FFD740; }
+.title-card .subtitle { font-size: clamp(1.1rem, 4vw, 1.6rem); color: var(--dark); margin: 8px 0; font-weight: 700; }
+.school-name { color: var(--secondary); font-size: clamp(1.3rem, 4.5vw, 2rem); font-weight: 900; margin: 15px 0; }
+.start-btn { margin-top: 25px; padding: 18px 50px; font-size: clamp(1.4rem, 5vw, 2rem); font-family: 'Tajawal', sans-serif; font-weight: 900; background: linear-gradient(45deg, var(--primary), #FF8A65); color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 10px 30px rgba(255,82,82,0.4); transition: transform 0.2s, box-shadow 0.2s; }
+.start-btn:hover, .start-btn:active { transform: scale(1.05); box-shadow: 0 15px 40px rgba(255,82,82,0.5); }
+
+#gameScreen { background: radial-gradient(circle at top, #FFF9C4 0%, #B2EBF2 100%); padding: 10px; }
+.game-header { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; background: white; border-radius: 20px; padding: 12px 20px; margin-bottom: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 10px; }
+.round-info { font-size: clamp(1rem, 3.5vw, 1.4rem); font-weight: 900; color: var(--secondary); }
+.score-box { background: var(--accent); padding: 8px 20px; border-radius: 50px; font-size: clamp(1.1rem, 4vw, 1.5rem); font-weight: 900; color: var(--dark); }
+.replay-btn { background: var(--primary); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.replay-btn:hover, .replay-btn:active { transform: scale(1.1); }
+.target-area { width: 100%; max-width: 900px; background: white; border-radius: 30px; padding: 20px; text-align: center; margin-bottom: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 4px solid var(--accent); }
+.target-display { font-size: clamp(4rem, 15vw, 8rem); font-weight: 900; margin: 10px 0; min-height: 130px; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; animation: pulseTarget 2s infinite; }
+.instruction { font-size: clamp(1.2rem, 4vw, 1.8rem); font-weight: 700; color: var(--dark); margin-top: 5px; }
+.play-area { width: 100%; max-width: 900px; flex: 1; min-height: 350px; position: relative; background: linear-gradient(to bottom, #E1F5FE, #B3E5FC); border-radius: 30px; overflow: hidden; border: 4px dashed white; box-shadow: inset 0 0 20px rgba(0,0,0,0.05); }
+
+.balloon { position: absolute; width: clamp(75px, 18vw, 110px); height: clamp(95px, 22vw, 140px); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: clamp(2rem, 6vw, 3rem); font-weight: 900; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); cursor: pointer; box-shadow: inset -10px -10px 20px rgba(0,0,0,0.15), inset 10px 10px 20px rgba(255,255,255,0.3), 0 5px 15px rgba(0,0,0,0.2); animation: fall linear infinite; user-select: none; top: -150px; }
+.balloon::before { content: ''; position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; background: inherit; border-radius: 50% 50% 0 0; z-index: -1; }
+.balloon::after { content: ''; position: absolute; bottom: -40px; width: 2px; height: 30px; background: rgba(255,255,255,0.8); }
+.balloon.pop { animation: pop 0.3s ease forwards !important; }
+.balloon.wrong { animation: wiggle 0.5s ease; }
+
+@keyframes fall { 0% { top: -150px; transform: translateX(0) rotate(-5deg); } 25% { transform: translateX(15px) rotate(5deg); } 50% { transform: translateX(-10px) rotate(-5deg); } 75% { transform: translateX(10px) rotate(5deg); } 100% { top: 110%; transform: translateX(0) rotate(-5deg); } }
+@keyframes pop { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-15deg); } 40% { transform: rotate(15deg); } 60% { transform: rotate(-15deg); } 80% { transform: rotate(15deg); } }
+@keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes pulseTarget { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+.picture-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px; padding: 20px; width: 100%; height: 100%; align-items: center; justify-items: center; }
+.picture-card { background: white; border-radius: 25px; width: clamp(130px, 28vw, 180px); height: clamp(130px, 28vw, 180px); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: clamp(3rem, 8vw, 5rem); cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s; border: 6px solid transparent; position: relative; overflow: hidden; }
+.picture-card:hover, .picture-card:active { transform: translateY(-10px) scale(1.05); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+.picture-card.selected-wrong { animation: shake 0.5s ease; border-color: #FF5252; }
+.picture-card.selected-correct { animation: pulse 0.5s ease; border-color: #00BFAE; background: #E0F2F1; }
+
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-15px); } 40% { transform: translateX(15px); } 60% { transform: translateX(-15px); } 80% { transform: translateX(15px); } }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+.progress-bar { width: 100%; max-width: 900px; height: 12px; background: rgba(255,255,255,0.5); border-radius: 10px; margin-top: 15px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 10px; transition: width 0.5s ease; width: 0%; }
+
+#certificateScreen { background: linear-gradient(135deg, #FFD740 0%, #FF5252 50%, #00BFAE 100%); justify-content: flex-start; overflow-y: auto; padding: 20px; }
+#certCanvas { max-width: 100%; height: auto; border-radius: 15px; box-shadow: 0 15px 50px rgba(0,0,0,0.3); margin: 15px 0; background: white; }
+.cert-controls { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 15px 0; width: 100%; max-width: 900px; }
+.cert-btn { padding: 14px 30px; font-size: clamp(1rem, 3.5vw, 1.3rem); font-family: 'Tajawal', sans-serif; font-weight: 900; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.2s; color: white; box-shadow: 0 6px 20px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; }
+.cert-btn:hover, .cert-btn:active { transform: translateY(-3px) scale(1.05); }
+.camera-btn { background: linear-gradient(45deg, #667eea, #764ba2); }
+.upload-btn { background: linear-gradient(45deg, #11998e, #38ef7d); position: relative; overflow: hidden; }
+.download-btn { background: linear-gradient(45deg, #f093fb, #f5576c); }
+.replay-game-btn { background: linear-gradient(45deg, #fa709a, #fee140); }
+#uploadInput { position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; right: 0; cursor: pointer; }
+#cameraVideo { display: none; width: 100%; max-width: 400px; border-radius: 20px; margin: 10px 0; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+#snapBtn { display: none; padding: 12px 40px; font-size: 1.3rem; font-family: 'Tajawal', sans-serif; font-weight: 900; background: var(--primary); color: white; border: none; border-radius: 50px; cursor: pointer; margin-bottom: 15px; }
+.name-input { padding: 12px 20px; font-size: 1.2rem; font-family: 'Tajawal', sans-serif; border: 3px solid var(--secondary); border-radius: 50px; text-align: center; outline: none; width: 100%; max-width: 400px; margin: 10px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+.confetti { position: fixed; width: 12px; height: 12px; top: -20px; animation: confetti-fall 3s linear forwards; z-index: 1000; pointer-events: none; }
+@keyframes confetti-fall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+
+.feedback { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px 50px; border-radius: 30px; font-size: clamp(1.5rem, 6vw, 2.5rem); font-weight: 900; color: var(--primary); box-shadow: 0 20px 60px rgba(0,0,0,0.2); z-index: 1001; animation: feedbackPop 0.5s ease; pointer-events: none; text-align: center; border: 4px solid var(--accent); }
+@keyframes feedbackPop { 0% { transform: translate(-50%, -50%) scale(0); } 60% { transform: translate(-50%, -50%) scale(1.1); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
+@media (max-width: 480px) {
+  .title-card { padding: 20px 15px; border-width: 5px; }
+  .game-header { padding: 10px 12px; }
+  .target-area { padding: 12px; }
+  .picture-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 12px; }
+  .play-area { min-height: 280px; }
+}
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="screen active">
+  <div class="title-card">
+    <h1>🎈 لعبة اصتياد الحروف والأرقام 🎈</h1>
+    <div class="subtitle">تصميم: المعلمة شفاء مساعدة</div>
+    <div class="school-name">مدرسة وروضة براعم الأمل</div>
+    <div class="subtitle">لطلاب وطالبات KG2</div>
+    <button class="start-btn" id="startBtn">🚀 ابدأ المغامرة</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="screen">
+  <div class="game-header">
+    <div class="round-info" id="roundInfo">المرحلة ١: اسمع واختر</div>
+    <div class="score-box">⭐ <span id="scoreDisplay">١٠٠</span></div>
+    <button class="replay-btn" id="replaySoundBtn">🔊</button>
+  </div>
+  <div class="target-area">
+    <div class="target-display" id="targetDisplay"></div>
+    <div class="instruction" id="instruction"></div>
+  </div>
+  <div class="play-area" id="playArea"></div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<div id="certificateScreen" class="screen">
+  <input type="text" class="name-input" id="childName" placeholder="اكتب اسم الطفل / الطفلة هنا">
+  <canvas id="certCanvas" width="1200" height="1100"></canvas>
+  <div class="cert-controls">
+    <button class="cert-btn camera-btn" id="cameraBtn">📷 التقاط صورة</button>
+    <button class="cert-btn upload-btn"> 📁 رفع صورة
+      <input type="file" id="uploadInput" accept="image/*">
+    </button>
+    <button class="cert-btn download-btn" id="downloadBtn">💾 تحميل الشهادة</button>
+    <button class="cert-btn replay-game-btn" id="replayGameBtn">🔄 العب مرة أخرى</button>
+  </div>
+  <video id="cameraVideo" autoplay playsinline muted></video>
+  <button id="snapBtn">📸 التقط الصورة</button>
+</div>
+
+<script>
+const items = [
+  { char: 'أ', type: 'arabic', name: 'ألف', word: 'أسد', emoji: '🦁', color: '#FF5252' },
+  { char: 'ي', type: 'arabic', name: 'ياء', word: 'يد', emoji: '✋', color: '#00BFAE' },
+  { char: 'و', type: 'arabic', name: 'واو', word: 'وردة', emoji: '🌹', color: '#E040FB' },
+  { char: 'A', type: 'english', name: 'A', word: 'Apple', emoji: '🍎', color: '#FF5252' },
+  { char: 'a', type: 'english', name: 'a', word: 'ant', emoji: '🐜', color: '#FF8C00' },
+  { char: 'B', type: 'english', name: 'B', word: 'Ball', emoji: '⚽', color: '#00838F' },
+  { char: 'b', type: 'english', name: 'b', word: 'banana', emoji: '🍌', color: '#FFD740' },
+  { char: '1', type: 'number', name: 'واحد', word: 'تفاحة واحدة', emoji: '🍎', color: '#7C4DFF' },
+  { char: '2', type: 'number', name: 'اثنان', word: 'كرتين', emoji: '⚽⚽', color: '#00C853' }
+];
+
+const encouragements = ['أحسنت! 🌟', 'ممتاز! 🎉', 'رائع! 👏', 'جميل جداً! 💐', 'Bravo يا بطل! 🏆', 'أنت الأفضل! ⭐'];
+const tryAgainPhrases = ['حاول مرة أخرى 😊', 'لا بأس، جرب ثانية 💪', 'فكّر جيداً 🤔', 'أنت تستطيع! 🌈'];
+
+let currentState = 'start';
+let currentRound = 1;
+let round1Order = [];
+let round2Order = [];
+let currentIndex = 0;
+let score = 100;
+let audioCtx = null;
+let photoDataUrl = null;
+let currentTarget = null;
+let isProcessing = false;
+
+const screens = {
+  start: document.getElementById('startScreen'),
+  game: document.getElementById('gameScreen'),
+  certificate: document.getElementById('certificateScreen')
+};
+const startBtn = document.getElementById('startBtn');
+const replaySoundBtn = document.getElementById('replaySoundBtn');
+const targetDisplay = document.getElementById('targetDisplay');
+const instruction = document.getElementById('instruction');
+const playArea = document.getElementById('playArea');
+const roundInfo = document.getElementById('roundInfo');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const progressFill = document.getElementById('progressFill');
+const certCanvas = document.getElementById('certCanvas');
+const childNameInput = document.getElementById('childName');
+const cameraBtn = document.getElementById('cameraBtn');
+const cameraVideo = document.getElementById('cameraVideo');
+const snapBtn = document.getElementById('snapBtn');
+const uploadInput = document.getElementById('uploadInput');
+const downloadBtn = document.getElementById('downloadBtn');
+const replayGameBtn = document.getElementById('replayGameBtn');
+
+function shuffle(array) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+  currentState = name;
+}
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function getArabicVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const arVoice = voices.find(v => v.lang.includes('ar') && /female|feminine|سارة|ليلى|نسائية/i.test(v.name)) || voices.find(v => v.lang.includes('ar')) || voices.find(v => v.lang.includes('en')) || voices[0];
+  return arVoice;
+}
+
+function speak(text, lang = 'ar-SA', rate = 0.85) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  utterance.rate = rate;
+  utterance.pitch = 1.15;
+  utterance.volume = 1;
+  const voice = getArabicVoice();
+  if (voice) utterance.voice = voice;
+  window.speechSynthesis.speak(utterance);
+}
+
+function playClap() {
+  initAudio();
+  const now = audioCtx.currentTime;
+  for (let i = 0; i < 10; i++) {
+    const bufferSize = audioCtx.sampleRate * 0.08;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let j = 0; j < bufferSize; j++) {
+      data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.3));
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 800 + Math.random() * 1000;
+    filter.Q.value = 0.5;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.4, now + i * 0.07);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.07 + 0.08);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    noise.start(now + i * 0.07);
+  }
+}
+
+function playSuccessTone() {
+  initAudio();
+  const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+  const now = audioCtx.currentTime;
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0, now + i * 0.12);
+    gain.gain.linearRampToValueAtTime(0.3, now + i * 0.12 + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.12 + 0.25);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now + i * 0.12);
+    osc.stop(now + i * 0.12 + 0.3);
+  });
+}
+
+function playTryAgainTone() {
+  initAudio();
+  const now = audioCtx.currentTime;
+  const notes = [300, 280];
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    osc.type = 'triangle';
+    gain.gain.setValueAtTime(0.2, now + i * 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.2 + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now + i * 0.2);
+    osc.stop(now + i * 0.2 + 0.25);
+  });
+}
+
+function showFeedback(text) {
+  const existing = document.querySelector('.feedback');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'feedback';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 1500);
+}
+
+function createConfetti() {
+  const colors = ['#FF5252', '#00BFAE', '#FFD740', '#69F0AE', '#E040FB', '#7C4DFF'];
+  for (let i = 0; i < 50; i++) {
+    setTimeout(() => {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+      document.body.appendChild(confetti);
+      setTimeout(() => confetti.remove(), 4000);
+    }, i * 30);
+  }
+}
+
+function startGame() {
+  initAudio();
+  round1Order = shuffle(items);
+  round2Order = shuffle(items);
+  currentRound = 1;
+  currentIndex = 0;
+  score = 100;
+  scoreDisplay.textContent = '١٠٠';
+  photoDataUrl = null;
+  childNameInput.value = '';
+  showScreen('game');
+  startRound1();
+}
+
+function updateProgress() {
+  const total = items.length * 2;
+  const current = (currentRound - 1) * items.length + currentIndex;
+  const percent = (current / total) * 100;
+  progressFill.style.width = percent + '%';
+}
+
+function getItemDescription(item) {
+  if (item.type === 'arabic') return `حرف ${item.name}`;
+  if (item.type === 'english') return `حرف ${item.name}`;
+  return `الرقم ${item.name}`;
+}
+
+function startRound1() {
+  currentRound = 1;
+  currentIndex = 0;
+  roundInfo.textContent = 'المرحلة ١: اسمع واختر 🎈';
+  nextRound1Item();
+}
+
+function nextRound1Item() {
+  if (currentIndex >= round1Order.length) {
+    startRound2();
+    return;
+  }
+  isProcessing = false;
+  currentTarget = round1Order[currentIndex];
+  updateProgress();
+  targetDisplay.innerHTML = `<span style="color:${currentTarget.color}">${currentTarget.char}</span> <span style="font-size:0.5em">${currentTarget.emoji}</span>`;
+  instruction.textContent = `اسمع جيداً... ثم اضغط على البالون الذي فيه ${getItemDescription(currentTarget)}`;
+  playArea.innerHTML = '';
+  createBalloons();
+  setTimeout(() => { speakRound1Prompt(); }, 500);
+}
+
+function speakRound1Prompt() {
+  const prompt = `اضغط على البالون الذي فيه ${getItemDescription(currentTarget)} ${currentTarget.name}`;
+  speak(prompt);
+}
+
+function createBalloons() {
+  const balloonCount = 4;
+  const distractors = items.filter(i => i.char !== currentTarget.char);
+  const selectedDistractors = shuffle(distractors).slice(0, balloonCount - 1);
+  const balloonItems = shuffle([currentTarget, ...selectedDistractors]);
+  balloonItems.forEach((item, index) => {
+    const balloon = document.createElement('div');
+    balloon.className = 'balloon';
+    balloon.innerHTML = `${item.char}<div style="font-size:0.4em; margin-top:5px;">${item.emoji}</div>`;
+    balloon.style.backgroundColor = item.color;
+    balloon.style.left = (10 + (index * 22) + Math.random() * 10) + '%';
+    balloon.style.animationDuration = (5 + Math.random() * 3) + 's';
+    balloon.style.animationDelay = (index * 0.5) + 's';
+    balloon.dataset.isTarget = item.char === currentTarget.char;
+    balloon.addEventListener('click', () => handleBalloonClick(balloon));
+    balloon.addEventListener('touchstart', (e) => { e.preventDefault(); handleBalloonClick(balloon); });
+    playArea.appendChild(balloon);
+  });
+}
+
+function handleBalloonClick(balloon) {
+  if (isProcessing) return;
+  const isTarget = balloon.dataset.isTarget === 'true';
+  if (isTarget) {
+    isProcessing = true;
+    balloon.classList.add('pop');
+    playSuccessTone();
+    playClap();
+    const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+    showFeedback(msg);
+    speak(msg);
+    setTimeout(() => { currentIndex++; nextRound1Item(); }, 1800);
+  } else {
+    balloon.classList.add('wrong');
+    playTryAgainTone();
+    const msg = tryAgainPhrases[Math.floor(Math.random() * tryAgainPhrases.length)];
+    showFeedback(msg);
+    speak(msg);
+    setTimeout(() => balloon.classList.remove('wrong'), 500);
+  }
+}
+
+function startRound2() {
+  currentRound = 2;
+  currentIndex = 0;
+  roundInfo.textContent = 'المرحلة ٢: الحرف والصورة 🖼️';
+  speak('الآن المرحلة الثانية. اختر الصورة المناسبة.');
+  nextRound2Item();
+}
+
+function nextRound2Item() {
+  if (currentIndex >= round2Order.length) {
+    showCertificate();
+    return;
+  }
+  isProcessing = false;
+  currentTarget = round2Order[currentIndex];
+  updateProgress();
+  targetDisplay.innerHTML = `<span style="color:${currentTarget.color}">${currentTarget.char}</span> <span style="font-size:0.5em">${currentTarget.emoji}</span>`;
+  instruction.textContent = `أين صورة ${currentTarget.word}؟`;
+  playArea.innerHTML = '';
+  createPictureCards();
+  setTimeout(() => { speakRound2Prompt(); }, 500);
+}
+
+function speakRound2Prompt() {
+  const prompt = `أين صورة ${currentTarget.word}؟`;
+  speak(prompt);
+}
+
+function createPictureCards() {
+  const grid = document.createElement('div');
+  grid.className = 'picture-grid';
+  const distractors = items.filter(i => i.char !== currentTarget.char);
+  const selectedDistractors = shuffle(distractors).slice(0, 2);
+  const options = shuffle([currentTarget, ...selectedDistractors]);
+  options.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'picture-card';
+    card.innerHTML = `
+      <div style="font-size: 0.8em; margin-bottom: 5px;">${item.emoji}</div>
+      <div style="font-size: 0.3em; color: #666; font-weight: 700;">${item.word}</div>
+    `;
+    card.dataset.isTarget = item.char === currentTarget.char;
+    card.addEventListener('click', () => handlePictureClick(card));
+    card.addEventListener('touchstart', (e) => { e.preventDefault(); handlePictureClick(card); });
+    grid.appendChild(card);
+  });
+  playArea.appendChild(grid);
+}
+
+function handlePictureClick(card) {
+  if (isProcessing) return;
+  const isTarget = card.dataset.isTarget === 'true';
+  if (isTarget) {
+    isProcessing = true;
+    card.classList.add('selected-correct');
+    playSuccessTone();
+    playClap();
+    const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+    showFeedback(msg);
+    speak(msg);
+    setTimeout(() => { currentIndex++; nextRound2Item(); }, 1800);
+  } else {
+    card.classList.add('selected-wrong');
+    playTryAgainTone();
+    const msg = tryAgainPhrases[Math.floor(Math.random() * tryAgainPhrases.length)];
+    showFeedback(msg);
+    speak(msg);
+    setTimeout(() => card.classList.remove('selected-wrong'), 500);
+  }
+}
+
+function showCertificate() {
+  updateProgress();
+  progressFill.style.width = '100%';
+  showScreen('certificate');
+  createConfetti();
+  playClap();
+  playSuccessTone();
+  setTimeout(() => { speak('مبروك! أنت بطل الحروف. درجتك مئة من مئة.'); }, 500);
+  drawCertificate();
+}
+
+function drawLogo(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.beginPath();
+  ctx.arc(0, 0, size, 0, Math.PI * 2);
+  ctx.fillStyle = '#1976D2';
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#FFD740';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.75, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.fillStyle = '#1976D2';
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.4, -size * 0.1);
+  ctx.lineTo(0, -size * 0.25);
+  ctx.lineTo(size * 0.4, -size * 0.1);
+  ctx.lineTo(size * 0.4, size * 0.35);
+  ctx.lineTo(0, size * 0.2);
+  ctx.lineTo(-size * 0.4, size * 0.35);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#FFD740';
+  drawStar(ctx, 0, -size * 0.35, 5, size * 0.2, size * 0.1);
+  ctx.restore();
+}
+
+function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+  let rot = Math.PI / 2 * 3;
+  let x = cx;
+  let y = cy;
+  let step = Math.PI / spikes;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+  for (let i = 0; i < spikes; i++) {
+    x = cx + Math.cos(rot) * outerRadius;
+    y = cy + Math.sin(rot) * outerRadius;
+    ctx.lineTo(x, y);
+    rot += step;
+    x = cx + Math.cos(rot) * innerRadius;
+    y = cy + Math.sin(rot) * innerRadius;
+    ctx.lineTo(x, y);
+    rot += step;
+  }
+  ctx.lineTo(cx, cy - outerRadius);
+  ctx.closePath();
+  ctx.fillStyle = '#FFD740';
+  ctx.fill();
+}
+
+function drawCertificate() {
+  const ctx = certCanvas.getContext('2d');
+  const w = certCanvas.width;
+  const h = certCanvas.height;
+  
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, '#FFF9C4');
+  grad.addColorStop(0.5, '#B2EBF2');
+  grad.addColorStop(1, '#FFCCBC');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  for (let i = 0; i < 50; i++) {
+    ctx.beginPath();
+    ctx.arc(50 + Math.random() * (w - 100), 50 + Math.random() * (h - 100), 4 + Math.random() * 8, 0, Math.PI * 2);
+    ctx.fillStyle = ['#FF5252', '#00BFAE', '#FFD740', '#E040FB', '#7C4DFF'][Math.floor(Math.random() * 5)];
+    ctx.fill();
+  }
+  
+  ctx.strokeStyle = '#FF5252';
+  ctx.lineWidth = 15;
+  ctx.strokeRect(40, 40, w - 80, h - 80);
+  ctx.strokeStyle = '#00BFAE';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(60, 60, w - 120, h - 120);
+
+  const corners = [[80, 80], [w - 80, 80], [80, h - 80], [w - 80, h - 80]];
+  corners.forEach(([cx, cy]) => drawStar(ctx, cx, cy, 5, 30, 15));
+
+  ctx.fillStyle = '#D32F2F';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 36px Tajawal, sans-serif';
+  ctx.fillText('وزارة التربية والتعليم والموارد البشرية', w / 2, 160);
+  
+  drawLogo(ctx, w / 2, 250, 60);
+
+  ctx.fillStyle = '#00796B';
+  ctx.font = 'bold 32px Tajawal, sans-serif';
+  ctx.fillText('لواء المزار الشمالي', w / 2, 360);
+  ctx.fillText('مدرسة وروضة براعم الأمل', w / 2, 420);
+
+  ctx.fillStyle = '#E91E63';
+  ctx.font = '900 80px Tajawal, sans-serif';
+  ctx.fillText('شهادة تقدير', w / 2, 530);
+  ctx.fillStyle = '#FF6F00';
+  ctx.font = '900 60px Tajawal, sans-serif';
+  ctx.fillText('اللقب: أبطال الحروف', w / 2, 620);
+
+  const photoSize = 200;
+  const photoX = w / 2 - photoSize / 2;
+  const photoY = 670;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(w / 2, photoY + photoSize / 2, photoSize / 2 + 10, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFD740';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(w / 2, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  if (photoDataUrl) {
+    const img = new Image();
+    img.onload = () => drawCertificate();
+    img.src = photoDataUrl;
+    try { ctx.drawImage(img, photoX, photoY, photoSize, photoSize); } catch(e) {}
+  } else {
+    ctx.fillStyle = '#E0F7FA';
+    ctx.fillRect(photoX, photoY, photoSize, photoSize);
+    ctx.fillStyle = '#B0BEC5';
+    ctx.font = '90px Tajawal, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('👧', w / 2, photoY + 120);
+  }
+  ctx.restore();
+
+  const childName = childNameInput.value.trim() || 'البطل / البطلة';
+  ctx.fillStyle = '#37474F';
+  ctx.font = 'bold 40px Tajawal, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`تُمنح هذه الشهادة إلى: ${childName}`, w / 2, 940);
+
+  ctx.fillStyle = '#388E3C';
+  ctx.font = '900 45px Tajawal, sans-serif';
+  ctx.fillText('الدرجة: ١٠٠ / ١٠٠', w / 2, 1010);
+
+  ctx.fillStyle = '#455A64';
+  ctx.font = 'bold 28px Tajawal, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('إعداد: المعلمة شفاء مساعدة', w - 100, h - 100);
+  ctx.fillText('إشراف: المديرة سوزان مساعدة', w - 100, h - 60);
+  ctx.textAlign = 'left';
+  ctx.fillText(`التاريخ: ${new Date().toLocaleDateString('ar-JO')}`, 100, h - 80);
+}
+
+let currentStream = null;
+cameraBtn.addEventListener('click', async () => {
+  try {
+    if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    currentStream = stream;
+    cameraVideo.srcObject = stream;
+    cameraVideo.style.display = 'block';
+    snapBtn.style.display = 'inline-block';
+  } catch (err) {
+    alert('لا يمكن الوصول إلى الكاميرا. يمكنك رفع صورة من الجهاز. 📁');
+  }
+});
+
+snapBtn.addEventListener('click', () => {
+  if (!currentStream) return;
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = cameraVideo.videoWidth || 640;
+  tempCanvas.height = cameraVideo.videoHeight || 480;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.translate(tempCanvas.width, 0);
+  tempCtx.scale(-1, 1);
+  tempCtx.drawImage(cameraVideo, 0, 0);
+  photoDataUrl = tempCanvas.toDataURL('image/png');
+  currentStream.getTracks().forEach(track => track.stop());
+  cameraVideo.style.display = 'none';
+  snapBtn.style.display = 'none';
+  currentStream = null;
+  drawCertificate();
+  speak('تم التقاط الصورة بنجاح');
+});
+
+uploadInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    photoDataUrl = event.target.result;
+    drawCertificate();
+    speak('تم رفع الصورة بنجاح');
+  };
+  reader.readAsDataURL(file);
+});
+
+downloadBtn.addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'شهادة-أبطال-الحروف.png';
+  link.href = certCanvas.toDataURL('image/png');
+  link.click();
+  speak('تم تحميل الشهادة');
+});
+
+replayGameBtn.addEventListener('click', () => {
+  if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
+  cameraVideo.style.display = 'none';
+  snapBtn.style.display = 'none';
+  startGame();
+});
+
+startBtn.addEventListener('click', startGame);
+replaySoundBtn.addEventListener('click', () => {
+  if (currentRound === 1) { speakRound1Prompt(); }
+  else if (currentRound === 2) { speakRound2Prompt(); }
+});
+childNameInput.addEventListener('input', drawCertificate);
+
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {};
+}
+drawCertificate();
+</script>
+</body>
+</html>
